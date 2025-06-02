@@ -4,26 +4,31 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 // Assuming these namespaces exist in your Application layer
-using HotelBookingSystem.Application.Interfaces;
 using HotelBookingSystem.Application.DTOs.ReservationRooms;
+using MediatR;
+using HotelBookingSystem.Application.Features.ReservationRooms.Queries.GetReservationRoomsByReservationId;
+using HotelBookingSystem.Application.Features.ReservationRooms.Queries.GetReservationRoomById;
+using HotelBookingSystem.Application.Features.ReservationRooms.Commands.CreateReservationRoom;
+using HotelBookingSystem.Application.Features.ReservationRooms.Commands.UpdateReservationRoom;
+using HotelBookingSystem.Application.Features.ReservationRooms.Commands.DeleteReservationRoom;
 
 namespace HotelBookingSystem.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class ReservationRoomsController : ControllerBase
-    {
-        private readonly IReservationRoomRepository _reservationRoomRepository;
+    {   private readonly IMediator _mediator;
 
-        public ReservationRoomsController(IReservationRoomRepository reservationRoomRepository)
+        public ReservationRoomsController(IMediator mediator)
         {
-            _reservationRoomRepository = reservationRoomRepository;
+            _mediator = mediator;
         }
 
         [HttpGet("reservation/{reservationId}")]
         public async Task<ActionResult<IEnumerable<ReservationRoomDto>>> GetReservationRoomsForReservation(long reservationId)
         {
-            var reservationRooms = await _reservationRoomRepository.GetByReservationIdAsync(reservationId);
+            var query = new GetReservationRoomsByReservationIdQuery { ReservationId = reservationId };
+            var reservationRooms = await _mediator.Send(query);
 
             if (reservationRooms == null)
             {
@@ -37,7 +42,8 @@ namespace HotelBookingSystem.Api.Controllers
         public async Task<ActionResult<ReservationRoomDto>> GetReservationRoomById(long id)
         {
             var reservationRoom = await _reservationRoomRepository.GetByIdAsync(id);
-
+            var query = new GetReservationRoomByIdQuery { Id = id };
+            var reservationRoom = await _mediator.Send(query);
             if (reservationRoom == null)
             {
                 return NotFound();

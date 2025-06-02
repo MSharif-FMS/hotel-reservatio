@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using HotelBookingSystem.Application.Interfaces;
-using HotelBookingSystem.Domain.Entities;
+using MediatR;
+using HotelBookingSystem.Application.Features.Images.Queries;
+using HotelBookingSystem.Application.Features.Images.Commands;
+
 
 namespace HotelBookingSystem.Api.Controllers
 {
@@ -12,11 +14,11 @@ namespace HotelBookingSystem.Api.Controllers
     [Route("api/[controller]")]
     public class ImagesController : ControllerBase
     {
-        private readonly IImageRepository _imageRepository;
+        private readonly IMediator _mediator;
 
-        public ImagesController(IImageRepository imageRepository)
+        public ImagesController(IMediator mediator)
         {
-            _imageRepository = imageRepository;
+            _mediator = mediator;
         }
 
         [HttpGet("{id}")]
@@ -41,9 +43,42 @@ namespace HotelBookingSystem.Api.Controllers
                 return BadRequest("Invalid entity type specified.");
             }
 
-            var images = await _imageRepository.GetByEntityAsync(entityType, entityId);
+            var query = new GetImagesByEntityQuery { EntityType = entityType, EntityId = entityId };
+            var images = await _mediator.Send(query);
 
             return Ok(images);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<ImageDto>> CreateImage([FromBody] CreateImageCommand command)
+        {
+            var imageId = await _mediator.Send(command);
+            // Assuming CreateImageCommand handler returns the created ImageDto
+            var createdImage = await _mediator.Send(new GetImageByIdQuery { Id = imageId }); 
+            return CreatedAtAction(nameof(GetImageById), new { id = imageId }, createdImage);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateImage(long id, [FromBody] UpdateImageCommand command)
+        {
+            if (id != command.Id)
+            {
+                return BadRequest("Image ID in the URL and body do not match.");
+            }
+            var success = await _mediator.Send(command);
+            if (!success)
+            {
+                return NotFound($"Image with ID {id} not found.");
+            }
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteImage(long id)
+        {
+            var success = await _mediator.Send(new DeleteImageCommand { Id = id });
+            if (!success) return NotFound();
+            return NoContent();
         }
     }
 }

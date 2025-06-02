@@ -1,7 +1,16 @@
 csharp
-using HotelBookingSystem.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using MediatR;
+using HotelBookingSystem.Application.Features.RatePlans.Queries.GetAllRatePlans;
+using HotelBookingSystem.Application.Features.RatePlans.Queries.GetRatePlanById;
+using HotelBookingSystem.Application.Features.RatePlans.Queries.GetRatePlansByHotelId;
+using HotelBookingSystem.Application.Features.RatePlans.Commands.CreateRatePlan;
+using HotelBookingSystem.Application.Features.RatePlans.Commands.UpdateRatePlan;
+using HotelBookingSystem.Application.Features.RatePlans.Commands.DeleteRatePlan;
+using HotelBookingSystem.Application.DTOs.RatePlan;
+
 
 namespace HotelBookingSystem.Api.Controllers
 {
@@ -9,24 +18,26 @@ namespace HotelBookingSystem.Api.Controllers
     [Route("api/[controller]")]
     public class RatePlansController : ControllerBase
     {
-        private readonly IRatePlanRepository _ratePlanRepository; // Assuming this exists in Application.Interfaces
+        private readonly IMediator _mediator;
 
-        public RatePlansController(IRatePlanRepository ratePlanRepository)
+        public RatePlansController(IMediator mediator)
         {
-            _ratePlanRepository = ratePlanRepository;
+            _mediator = mediator;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllRatePlans()
+        public async Task<ActionResult<IEnumerable<RatePlanDto>>> GetAllRatePlans()
         {
-            var ratePlans = await _ratePlanRepository.GetAllAsync();
+            var query = new GetAllRatePlansQuery();
+            var ratePlans = await _mediator.Send(query);
             return Ok(ratePlans);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetRatePlanById(long id)
+        public async Task<ActionResult<RatePlanDto>> GetRatePlanById(long id)
         {
-            var ratePlan = await _ratePlanRepository.GetByIdAsync(id);
+            var query = new GetRatePlanByIdQuery { Id = id };
+            var ratePlan = await _mediator.Send(query);
             if (ratePlan == null)
             {
                 return NotFound();
@@ -36,9 +47,32 @@ namespace HotelBookingSystem.Api.Controllers
 
         [HttpGet("hotel/{hotelId}")]
         public async Task<IActionResult> GetRatePlansByHotelId(long hotelId)
-        {
-            var ratePlans = await _ratePlanRepository.GetByHotelIdAsync(hotelId);
+        {   
+            var query = new GetRatePlansByHotelIdQuery { HotelId = hotelId };
+            var ratePlans = await _mediator.Send(query);
             return Ok(ratePlans);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<RatePlanDto>> CreateRatePlan([FromBody] CreateRatePlanCommand command)
+        {
+            var ratePlan = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetRatePlanById), new { id = ratePlan.Id }, ratePlan);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateRatePlan(long id, [FromBody] UpdateRatePlanCommand command)
+        {
+            if (id != command.Id)
+            {
+                return BadRequest("Rate Plan ID in the URL and body do not match.");
+            }
+            var success = await _mediator.Send(command);
+            if (!success)
+            {
+                return NotFound($"Rate Plan with ID {id} not found.");
+            }
+            return NoContent();
         }
     }
 }

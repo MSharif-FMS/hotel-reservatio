@@ -1,7 +1,15 @@
 csharp
-using HotelBookingSystem.Application.Interfaces;
-using HotelBookingSystem.Application.Models.Reservation;
 using Microsoft.AspNetCore.Mvc;
+using MediatR;
+using HotelBookingSystem.Application.Features.Reservations.Commands.CreateReservation;
+using HotelBookingSystem.Application.Features.Reservations.Queries.GetAllReservations;
+using HotelBookingSystem.Application.Features.Reservations.Queries.GetReservationById;
+using HotelBookingSystem.Application.Features.Reservations.Commands.UpdateReservation;
+using HotelBookingSystem.Application.Features.Reservations.Commands.CancelReservation;
+using HotelBookingSystem.Application.Features.Reservations.Queries; // Assuming ReservationDto is here
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using HotelBookingSystem.Application.DTOs.Reservation;
 
 namespace HotelBookingSystem.Api.Controllers;
 
@@ -9,11 +17,11 @@ namespace HotelBookingSystem.Api.Controllers;
 [Route("api/[controller]")]
 public class ReservationsController : ControllerBase
 {
-    private readonly IReservationService _reservationService;
+    private readonly IMediator _mediator;
 
-    public ReservationsController(IReservationService reservationService)
+    public ReservationsController(IMediator mediator)
     {
-        _reservationService = reservationService;
+        _mediator = mediator;
     }
 
     /// <summary>
@@ -24,9 +32,9 @@ public class ReservationsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateReservation([FromBody] CreateReservationRequest request)
+    public async Task<ActionResult<ReservationDto>> CreateReservation([FromBody] CreateReservationCommand command)
     {
-        var reservation = await _reservationService.CreateReservationAsync(request);
+        var reservation = await _mediator.Send(command);
         return CreatedAtAction(nameof(GetReservationById), new { id = reservation.Id }, reservation);
     }
 
@@ -36,9 +44,9 @@ public class ReservationsController : ControllerBase
     /// <returns>A list of all reservations.</returns>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAllReservations()
+    public async Task<ActionResult<IEnumerable<ReservationDto>>> GetAllReservations()
     {
-        var reservations = await _reservationService.GetAllReservationsAsync();
+        var reservations = await _mediator.Send(new GetAllReservationsQuery());
         return Ok(reservations);
     }
 
@@ -49,10 +57,10 @@ public class ReservationsController : ControllerBase
     /// <returns>The reservation details.</returns>
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetReservationById(long id)
+    [ProducesResponseType(StatusCodes.Status404NotFound)] // Assuming the handler returns null if not found
+    public async Task<ActionResult<ReservationDto>> GetReservationById(long id)
     {
-        var reservation = await _reservationService.GetReservationByIdAsync(id);
+        var reservation = await _mediator.Send(new GetReservationByIdQuery { Id = id });
         if (reservation == null)
         {
             return NotFound();
@@ -68,9 +76,14 @@ public class ReservationsController : ControllerBase
     /// <returns>The updated reservation details.</returns>
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateReservation(long id, [FromBody] UpdateReservationRequest request)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)] // For bad input
+    [ProducesResponseType(StatusCodes.Status404NotFound)] // If reservation to update is not found
+    public async Task<ActionResult<ReservationDto>> UpdateReservation(long id, [FromBody] UpdateReservationCommand command)
+    {
+        if (id != command.Id)
+        {
+            return BadRequest("Reservation ID in the URL and body do not match.");
+        }
     {
         var reservation = await _reservationService.UpdateReservationAsync(id, request);
         if (reservation == null)
@@ -87,11 +100,11 @@ public class ReservationsController : ControllerBase
     /// <returns>A confirmation of the cancellation.</returns>
     [HttpDelete("{id}")] // Using DELETE for cancellation, or could be PUT with status update
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)] // If reservation to cancel is not found
     public async Task<IActionResult> CancelReservation(long id)
     {
-        var result = await _reservationService.CancelReservationAsync(id);
-        if (!result)
+        var success = await _mediator.Send(new CancelReservationCommand { Id = id });
+        if (!success) // Assuming the handler returns a boolean indicating success
         {
             return NotFound();
         }
