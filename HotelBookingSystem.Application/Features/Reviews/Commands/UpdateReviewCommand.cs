@@ -12,7 +12,8 @@ namespace HotelBookingSystem.Application.Features.Reviews.Commands.UpdateReview
         public int? Comfort { get; set; }
         public int? Location { get; set; }
         public int? Service { get; set; }
-        public string? Comment { get; set; }
-        public bool? IsApproved { get; set; }
+        public string? Comment { get; set; } // Make comment optional
+        public bool? IsApproved { get; set; } // Assuming IsApproved is a field that can be updated
+    }
     }
 }

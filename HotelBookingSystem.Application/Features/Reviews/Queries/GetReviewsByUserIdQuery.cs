@@ -3,7 +3,7 @@ using MediatR;
 using System.Collections.Generic;
 using HotelBookingSystem.Application.Features.Reviews.Queries; // Adjust namespace based on where ReviewDto is
 
-namespace HotelBookingSystem.Application.Features.Reviews.Queries.GetReviewsByUser
+namespace HotelBookingSystem.Application.Features.Reviews.Queries
 {
     public class GetReviewsByUserIdQuery : IRequest<IEnumerable<ReviewDto>>
     {

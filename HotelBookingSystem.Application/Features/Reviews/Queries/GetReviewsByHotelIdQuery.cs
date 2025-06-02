@@ -1,9 +1,8 @@
 csharp
 using MediatR;
 using System.Collections.Generic;
-using HotelBookingSystem.Application.Features.Reviews.Queries;
 
-namespace HotelBookingSystem.Application.Features.Reviews.Queries.GetReviewsByHotelId
+namespace HotelBookingSystem.Application.Features.Reviews.Queries
 {
     public class GetReviewsByHotelIdQuery : IRequest<IEnumerable<ReviewDto>>
     {
