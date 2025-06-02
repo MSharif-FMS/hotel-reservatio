@@ -8,6 +8,7 @@ using HotelBookingSystem.Application.Features.Reservations.Commands.UpdateReserv
 using HotelBookingSystem.Application.Features.Reservations.Commands.CancelReservation;
 using HotelBookingSystem.Application.Features.Reservations.Queries; // Assuming ReservationDto is here
 using System.Collections.Generic;
+using HotelBookingSystem.Application.Features.Reservations.Queries.GetReservationsByUserId;
 using System.Threading.Tasks;
 using HotelBookingSystem.Application.DTOs.Reservation;
 
@@ -91,6 +92,19 @@ public class ReservationsController : ControllerBase
             return NotFound();
         }
         return Ok(reservation);
+    }
+
+    /// <summary>
+    /// Gets reservations for a specific user by their ID.
+    /// </summary>
+    /// <param name=\"userId\">The ID of the user.</param>
+    /// <returns>A list of reservations for the user.</returns>
+    [HttpGet(\"user/{userId}\")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<ReservationDto>>> GetReservationsByUserId(long userId)
+    {
+        var reservations = await _mediator.Send(new GetReservationsByUserIdQuery { UserId = userId });
+        return Ok(reservations);
     }
 
     /// <summary>

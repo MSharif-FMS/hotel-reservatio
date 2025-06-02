@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using HotelBookingSystem.Application.DTOs.Hotel;
 using HotelBookingSystem.Application.Features.Hotels.Queries.GetHotels;
+using HotelBookingSystem.Application.Features.Hotels.Queries.GetHotelsByLocation;
 using HotelBookingSystem.Application.Features.Hotels.Queries.GetHotelById;
 using HotelBookingSystem.Application.Features.Hotels.Commands.CreateHotel;
 using HotelBookingSystem.Application.Features.Hotels.Commands.UpdateHotel;
@@ -45,6 +46,14 @@ namespace HotelBookingSystem.Api.Controllers
             }
 
             return Ok(hotel); 
+        }
+
+        [HttpGet("location/{location}")]
+        public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotelsByLocation(string location)
+        {
+            var query = new GetHotelsByLocationQuery { Location = location };
+            var hotels = await _mediator.Send(query);
+            return Ok(hotels);
         }
 
         [HttpPost]
